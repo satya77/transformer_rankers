@@ -52,3 +52,240 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W04-0213/Citance_XML/P08-2062.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W04-0213/Citance_XML/W07-1530.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W04-0213/Citance_XML/W11-0401.xml
+6 7
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/D09-1025.xml
+2 -6
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/D09-1025.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/P09-1045.xml
+3 6
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/P09-1113.xml
+2 6
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/P170300_w06.xml
+2 -6
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/P846406_w06.xml
+3 3
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/P846406_w06.xml
+3 4
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/Pfram_w06.xml
+3 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/Pfram_w06.xml
+3 -5
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/Ponto_w06.xml
+2 7
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/Ponto_w06.xml
+2 5
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W06-3909/Citance_XML/PSS07_w06.xml
+2 5
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/D12-1016.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/D13-1155.xml
+3 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+2 -1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+3 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+3 6
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+3 7
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+3 6
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+3 -1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/PS15684-W09.xml
+3 2
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/W10-4223.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/w11-1604.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W09-0621/Citance_XML/w11-1604.xml
+2 -4
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/P09207_w11.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/Pproc9_w11.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/Pproc14_w11.xml
+4 3
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/W12-3311.xml
+2 -2
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/W13-1006.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/W13-3208.xml
+2 5
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/W15-0909.xml
+3 2
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W11-0815/Citance_XML/W15-0909.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/E99-1024.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/H01-1052.xml
+3 2
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/J98-1006.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/N03-2035.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/N04-1016.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/P01-1005.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/W95-0104/Citance_XML/P96-1010.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/X96-1048/Citance_XML/J00-4003.xml
+2 8
+./data/Training-Set-2019/Task1/From-Training-Set-2018/X96-1048/Citance_XML/J00-4003.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/X96-1048/Citance_XML/W97-1307.xml
+2 1
+./data/Training-Set-2019/Task1/From-Training-Set-2018/X96-1048/Citance_XML/C04-1126.xml
+3 2
+./data/Training-Set-2019/Task1/From-Training-Set-2018/X96-1048/Citance_XML/W99-0612.xml
+2 1
+[(('1', 'method_citation'), 143), (('2', 'method_citation'), 115), (('ABSTRACT', 'method_citation'), 88), (('3', 'method_citation'), 85), (('4', 'method_citation'), 48), (('5', 'method_citation'), 40), (('1', 'results_citation'), 28), (('1', 'implication_citation'), 25), (('1', 'aim_citation'), 24), (('6', 'method_citation'), 22), (('2', 'results_citation'), 22), (('2', 'aim_citation'), 17), (('4', 'results_citation'), 16), (('3', 'results_citation'), 14), (('2', 'implication_citation'), 14), (('5', 'results_citation'), 12), (('7', 'method_citation'), 9), (('3', 'aim_citation'), 9), (('4', 'implication_citation'), 8), (('8', 'method_citation'), 7), (('1', 'hypothesis_citation'), 7), (('2', 'hypothesis_citation'), 7), (('3', 'implication_citation'), 6), (('5', 'implication_citation'), 5), (('4', 'aim_citation'), 4), (('7', 'results_citation'), 4), (('6', 'results_citation'), 4), (('5', 'aim_citation'), 4), (('ABSTRACT', 'results_citation'), 3), (('9', 'method_citation'), 3), (('3', 'hypothesis_citation'), 3), (('6', 'implication_citation'), 2), (('11', 'method_citation'), 2), (('11', 'results_citation'), 2), (('6', 'aim_citation'), 2), (('ABSTRACT', 'aim_citation'), 2), (('10', 'method_citation'), 1), (('13', 'method_citation'), 1), (('4', 'hypothesis_citation'), 1)]
+[('1', 263), ('3', 174), ('2', 172), ('5', 89), ('4', 71), ('ABSTRACT', 67), ('6', 55), ('7', 38), ('9', 6), ('PAPER', 5), ('8', 3), ('11', 2), ('10', 2)]
+(base) satyaalmasian@satyas-MacBook-Pro scisumm-corpus % conda activate myenvs
+Could not find conda environment: myenvs
+You can list all discoverable environments with `conda info --envs`.
+
+(base) satyaalmasian@satyas-MacBook-Pro scisumm-corpus % conda activate myenv
+(myenv) satyaalmasian@satyas-MacBook-Pro scisumm-corpus % pip install lxml
+Collecting lxml
+  Downloading lxml-4.5.2-cp36-cp36m-macosx_10_9_x86_64.whl (4.5 MB)
+     |████████████████████████████████| 4.5 MB 4.3 MB/s
+Installing collected packages: lxml
+Successfully installed lxml-4.5.2
+(myenv) satyaalmasian@satyas-MacBook-Pro scisumm-corpus % pip install pysolr==2.1.0
+Collecting pysolr==2.1.0
+  Using cached pysolr-2.1.0.tar.gz (11 kB)
+Building wheels for collected packages: pysolr
+  Building wheel for pysolr (setup.py) ... done
+  Created wheel for pysolr: filename=pysolr-2.1.0-py3-none-any.whl size=12177 sha256=f5a7fa667b1ea84b41d99799a92a5f23159ad2386b61eefc430024b29ebda075
+  Stored in directory: /Users/satyaalmasian/Library/Caches/pip/wheels/58/6a/d9/2f46aca480e135df2455a52bf63744ff7fd398d601dd7b4de4
+Successfully built pysolr
+Installing collected packages: pysolr
+Successfully installed pysolr-2.1.0
+(myenv) satyaalmasian@satyas-MacBook-Pro scisumm-corpus % pip install pysolr
+Requirement already satisfied: pysolr in /Users/satyaalmasian/anaconda/anaconda3/envs/myenv/lib/python3.6/site-packages (2.1.0)
+(myenv) satyaalmasian@satyas-MacBook-Pro scisumm-corpus % pip install pysolr==3.9.0
+Processing /Users/satyaalmasian/Library/Caches/pip/wheels/e3/a3/bb/a73984d1ba1b89951b2b111a1d39a6e4827d559144670e3605/pysolr-3.9.0-py2.py3-none-any.whl
+Requirement already satisfied: requests>=2.9.1 in /Users/satyaalmasian/anaconda/anaconda3/envs/myenv/lib/python3.6/site-packages (from pysolr==3.9.0) (2.23.0)
+Requirement already satisfied: urllib3!=1.25.0,!=1.25.1,<1.26,>=1.21.1 in /Users/satyaalmasian/anaconda/anaconda3/envs/myenv/lib/python3.6/site-packages (from requests>=2.9.1->pysolr==3.9.0) (1.25.9)
+Requirement already satisfied: certifi>=2017.4.17 in /Users/satyaalmasian/anaconda/anaconda3/envs/myenv/lib/python3.6/site-### Python template
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+-- VISUAL --                                                                                                            67        45,14      Top
+# Created by .ignore support plugin (hsz.mobi)
+### Python template
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+*.iws
+
+## Plugin-specific files:
+
+# IntelliJ
+/out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Crashlytics plugin (for Android Studio and IntelliJ)
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
