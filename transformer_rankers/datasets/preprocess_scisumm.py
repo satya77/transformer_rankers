@@ -2,7 +2,7 @@ from IPython import embed
 from tqdm import tqdm
 from os import walk,listdir
 from os.path import join
-from transformer_rankers.datasets.scicummGen import Paper
+from transformer_rankers.datasets.scicummGen import Paper,Annotation
 
 import csv
 import gzip
@@ -27,10 +27,11 @@ def transform_to_dfs(path):
     """
     train=[]
     for directory in listdir(path):
-        paper = Paper(join(path, directory))
-
+        path_dir=join(path, directory)
+        annotations_path = join(path_dir, 'annotation')
+        annotation = Annotation(join(annotations_path, listdir(annotations_path)[0]))
         # For all the citances
-        for citance in paper.annotation.citances:
+        for citance in annotation.citances:
             train.append([citance["query"], citance["passage"]])
     train_df_all = pd.DataFrame(train, columns=["query", "passage"])
 

@@ -47,7 +47,7 @@ model.resize_token_embeddings(len(dataloader.tokenizer))
 trainer = transformer_trainer.TransformerTrainer(model=model,train_loader=train_loader,
                                 val_loader=val_loader, test_loader=test_loader,
                                 num_ns_eval=9, task_type="classification", tokenizer=tokenizer,
-                                validate_every_epoch=1, num_validation_instances=-1,
+                                validate_every_epochs=1, num_validation_instances=-1,
                                 num_epochs=1, lr=0.0005, sacred_ex=None)
 
 #Train the model

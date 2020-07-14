@@ -21,10 +21,6 @@ class Annotation:
                 citance['RP'] = field.split(':')[1].strip()
             if field.startswith('Citing Article'):
                 citance['CP'] = field.split(':')[1].split('.')[0].strip()
-            if field.startswith('Citation Offset'):
-                citance['CO'] = self._get_int_list(field.split(':')[1].strip())
-            if field.startswith('Reference Offset'):
-                citance['RO'] = self._get_int_list(field.split(':')[1].strip())
             if field.startswith('Citation Text'):
                 citance['query'] =BeautifulSoup((field.split(':')[1].strip()), "html.parser").s.string
             if field.startswith('Reference Text'):
