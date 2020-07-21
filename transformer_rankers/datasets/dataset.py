@@ -103,34 +103,50 @@ class QueryDocumentDataLoader(AbstractDataloader):
             }
             self.tokenizer.add_special_tokens(special_tokens_dict)
 
-    def get_pytorch_dataloaders(self):
-        train_loader = self._get_train_loader()
-        val_loader = self._get_val_loader()
-        test_loader = self._get_test_loader()
+    def get_pytorch_dataloaders(self, with_ranked_list=False):
+        train_loader = self._get_train_loader(with_ranked_list)
+        val_loader = self._get_val_loader(with_ranked_list)
+        test_loader = self._get_test_loader(with_ranked_list)
         return train_loader, val_loader, test_loader
 
-    def _get_train_loader(self):
-        dataset = QueryDocumentDataset(self.train_df, self.tokenizer,'train',
-                             self.negative_sampler_train, self.task_type,
-                             self.max_seq_len, self.sample_data, self.cache_path)
+    def _get_train_loader(self,with_ranked_list):
+        if with_ranked_list:
+            dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'train',
+                                                self.task_type,
+                                                self.max_seq_len, self.sample_data, self.cache_path)
+        else:
+            dataset = QueryDocumentDataset(self.train_df, self.tokenizer,'train',
+                                 self.negative_sampler_train, self.task_type,
+                                 self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
                                      batch_size=self.actual_train_batch_size,
                                      shuffle=True,
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
-    def _get_val_loader(self):
-        dataset = QueryDocumentDataset(self.val_df, self.tokenizer, 'val', 
+    def _get_val_loader(self,with_ranked_list):
+        if with_ranked_list:
+            dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'val',
+                                        self.task_type,
+                                       self.max_seq_len, self.sample_data, self.cache_path)
+        else:
+            dataset = QueryDocumentDataset(self.val_df, self.tokenizer, 'val',
                             self.negative_sampler_val, self.task_type,
                              self.max_seq_len, self.sample_data, self.cache_path)
+
         dataloader = data.DataLoader(dataset,
                                      batch_size=self.val_batch_size,
                                      shuffle=False,
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
-    def _get_test_loader(self):
-        dataset = QueryDocumentDataset(self.test_df, self.tokenizer, 'test', 
+    def _get_test_loader(self,with_ranked_list):
+        if with_ranked_list:
+            dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'test',
+                                            self.task_type,
+                                            self.max_seq_len, self.sample_data, self.cache_path)
+        else:
+            dataset = QueryDocumentDataset(self.test_df, self.tokenizer, 'test',
                              self.negative_sampler_val, self.task_type,
                              self.max_seq_len, self.sample_data, self.cache_path)
         dataloader = data.DataLoader(dataset,
@@ -193,8 +209,8 @@ class QueryDocumentDataset(data.Dataset):
                 relevant_label = "relevant </s>"
                 not_relevant_label = "not_relevant  </s>"
             labels = []
-            for r in self.data.itertuples(index=False):
-                labels+=([relevant_label] * len(r[1])) #relevant documents are grouped at the second column.
+            for rr in self.data.itertuples(index=False):
+                labels+=([relevant_label] * len(rr[1])) #relevant documents are grouped at the second column.
                 labels+=([not_relevant_label] * (self.negative_sampler.num_candidates_samples)) # each query has N negative samples.
 
             examples = []
@@ -236,6 +252,104 @@ class QueryDocumentDataset(data.Dataset):
                 logging.info("Set {} Instance {} query \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
                 logging.info("Set {} Instance {} document \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
                 logging.info("Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
+            with open(path, 'wb') as f:
+                pickle.dump(self.instances, f)
+
+        logging.info("Total of {} instances were cached.".format(len(self.instances)))
+
+    def __len__(self):
+        return len(self.instances)
+
+    def __getitem__(self, index):
+        return self.instances[index]
+
+
+class QueryDocumentDataset_noNeg(data.Dataset):
+    def __init__(self, data, tokenizer, data_partition,
+                 task_type, max_seq_len, sample_data,
+                 cache_path):
+        random.seed(42)
+
+        self.data = data
+        self.tokenizer = tokenizer
+        self.data_partition = data_partition
+        self.instances = []
+        self.task_type = task_type
+        self.max_seq_len = max_seq_len
+        self.sample_data = sample_data
+        self.cache_path = cache_path
+
+        self._group_relevant_documents()
+        self._cache_instances()
+
+    def _group_relevant_documents(self):
+        """
+        Since some datasets have multiple relevants per query, we group them to make NS easier.
+        """
+        query_col = self.data.columns[0]
+        self.data = self.data.groupby(query_col).agg(list).reset_index()
+
+    def _cache_instances(self):
+        """
+        Loads tensors into memory or creates the dataset when it does not exist already.
+        """
+        signature = "set_{}_n_evaluation_seq_max_l_{}_sample_{}_for_{}". \
+            format(self.data_partition,
+                   self.max_seq_len,
+                   self.sample_data,
+                   self.task_type)
+        path = self.cache_path + "/" + signature
+
+        if not os.path.exists(self.cache_path):
+            os.mkdir(self.cache_path)
+        if os.path.exists(path):
+            with open(path, 'rb') as f:
+                logging.info("Loading instances from {}".format(path))
+                self.instances = pickle.load(f)
+        else:
+            logging.info("Generating instances with signature {}".format(signature))
+            labels = []
+
+            examples = []
+            for idx, row in enumerate(tqdm(self.data.iterrows(), total=len(self.data))):
+                query = row[1][0]
+                relevant_documents = row[1][1][0]
+                examples.append((query, relevant_documents))
+                labels+=[int(row[1][2][0])]
+
+
+            logging.info("Encoding examples using tokenizer.batch_encode_plus().")
+            batch_encoding = self.tokenizer.batch_encode_plus(examples,
+                                                              max_length=self.max_seq_len, pad_to_max_length=True)
+
+            if self.task_type == "generation":
+                target_encodings = self.tokenizer.batch_encode_plus(labels,
+                                                                    pad_to_max_length=True, max_length=10)
+                target_encodings = {
+                    "target_ids": target_encodings["input_ids"],
+                    "target_attention_mask": target_encodings["attention_mask"]
+                }
+
+            logging.info("Transforming examples to instances format.")
+            self.instances = []
+            for i in range(len(examples)):
+                inputs = {k: batch_encoding[k][i] for k in batch_encoding}
+                if self.task_type == "generation":
+                    targets = {k: target_encodings[k][i] for k in target_encodings}
+                    inputs = {**inputs, **targets}
+                if self.task_type == "classification":
+                    feature = InputFeatures(**inputs, label=labels[i])
+                else:
+                    feature = inputs
+                self.instances.append(feature)
+
+            for idx in range(3):
+                logging.info(
+                    "Set {} Instance {} query \n\n{}[...]\n".format(self.data_partition, idx, examples[idx][0][0:200]))
+                logging.info(
+                    "Set {} Instance {} document \n\n{}\n".format(self.data_partition, idx, examples[idx][1][0:200]))
+                logging.info(
+                    "Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)
 

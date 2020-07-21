@@ -125,7 +125,8 @@ if PYSERINI_USABLE:
                 docs = self._generate_anserini_json_collection()
                 for i, doc in enumerate(docs):
                     with open(json_files_path+'/docs{:02d}.json'.format(i), 'w', encoding='utf-8', ) as f:
-                        f.write(json.dumps(doc) + '\n')        
+                        f.write(json.dumps(doc) + '\n')
+
 
                 #Run index java command
                 os.system("sh {}target/appassembler/bin/IndexCollection -collection JsonCollection"   \

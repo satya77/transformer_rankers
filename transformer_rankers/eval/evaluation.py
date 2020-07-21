@@ -32,6 +32,7 @@ def recall_at_with_k_candidates(preds, labels, k, at):
 
     sorted_labels = [x for _,x in sorted(zip(preds, labels), reverse=True)]
     hits = sorted_labels[:at].count(1)
+
     return hits/num_rel
 
 def evaluate_models(results):

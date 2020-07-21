@@ -27,15 +27,16 @@ def transform_to_dfs(path):
     """
     train=[]
     for directory in listdir(path):
-        path_dir=join(path, directory)
-        annotations_path = join(path_dir, 'annotation')
-        annotation = Annotation(join(annotations_path, listdir(annotations_path)[0]))
-        # For all the citances
-        for citance in annotation.citances:
-            train.append([citance["query"], citance["passage"]])
+        if directory !="scisumm":
+            path_dir=join(path, directory)
+            annotations_path = join(path_dir, 'annotation')
+            annotation = Annotation(join(annotations_path, listdir(annotations_path)[0]))
+            # For all the citances
+            for citance in annotation.citances:
+                train.append([citance["query"], citance["passage"]])
     train_df_all = pd.DataFrame(train, columns=["query", "passage"])
 
-    msk = np.random.rand(len(train_df_all)) < 0.8
+    msk = np.random.rand(len(train_df_all)) < 0.85
     train_df = train_df_all[msk]
     dev_df = train_df_all[~msk]
     return train_df, dev_df
