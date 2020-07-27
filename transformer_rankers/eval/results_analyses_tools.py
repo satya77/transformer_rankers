@@ -26,12 +26,15 @@ def evaluate_and_aggregate(preds, labels, metrics):
 
     agg_results = {}
     for metric in metrics:
-        res = 0
-        per_q_values = []
-        for q in results['model']['eval'].keys():
-            per_q_values.append(results['model']['eval'][q][metric])
-            res += results['model']['eval'][q][metric]
-        res /= len(results['model']['eval'].keys())
-        agg_results[metric] = res
+        if metric.startswith('accuracy') or metric.startswith('precision') or metric.startswith('recall') or metric.startswith('f_score'):
+            agg_results[metric]=results['model'][metric]
+        else:
+            res = 0
+            per_q_values = []
+            for q in results['model']['eval'].keys():
+                per_q_values.append(results['model']['eval'][q][metric])
+                res += results['model']['eval'][q][metric]
+            res /= len(results['model']['eval'].keys())
+            agg_results[metric] = res
 
     return agg_results

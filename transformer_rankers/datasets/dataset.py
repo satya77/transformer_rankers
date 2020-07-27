@@ -2,22 +2,23 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from transformers import DataCollator
-from transformers.data.processors.utils import InputFeatures
+# from transformers.data.processors.utils import InputFeatures
 from transformers.data.data_collator import DefaultDataCollator
 
 from IPython import embed
 from tqdm import tqdm
 from abc import *
 
-import dataclasses
-import functools
-import operator
 import torch.utils.data as data
 import torch
 import logging
 import random
 import os
 import pickle
+
+
+import copy
+import json
 
 @dataclass
 class T2TDataCollator(DataCollator):
@@ -109,9 +110,9 @@ class QueryDocumentDataLoader(AbstractDataloader):
         test_loader = self._get_test_loader(with_ranked_list)
         return train_loader, val_loader, test_loader
 
-    def _get_train_loader(self,with_ranked_list):
+    def _get_train_loader(self, with_ranked_list):
         if with_ranked_list:
-            dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'train',
+            dataset = QueryDocumentDataset_noNeg(self.train_df, self.tokenizer, 'train',
                                                 self.task_type,
                                                 self.max_seq_len, self.sample_data, self.cache_path)
         else:
@@ -124,7 +125,7 @@ class QueryDocumentDataLoader(AbstractDataloader):
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
-    def _get_val_loader(self,with_ranked_list):
+    def _get_val_loader(self, with_ranked_list):
         if with_ranked_list:
             dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'val',
                                         self.task_type,
@@ -140,7 +141,7 @@ class QueryDocumentDataLoader(AbstractDataloader):
                                      collate_fn=self.data_collator.collate_batch)
         return dataloader
 
-    def _get_test_loader(self,with_ranked_list):
+    def _get_test_loader(self, with_ranked_list):
         if with_ranked_list:
             dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'test',
                                             self.task_type,
@@ -289,6 +290,15 @@ class QueryDocumentDataset_noNeg(data.Dataset):
         query_col = self.data.columns[0]
         self.data = self.data.groupby(query_col).agg(list).reset_index()
 
+        print("before cleaning:{}".format(len(self.data )))
+        for index, row in self.data.iterrows():
+            if len(row['label']) != 10:
+                self.data.drop(index, inplace=True)
+            if row['label'] == [0]*10:
+                self.data.drop(index, inplace=True)
+
+        print("after cleaning:{}".format(len(self.data )))
+
     def _cache_instances(self):
         """
         Loads tensors into memory or creates the dataset when it does not exist already.
@@ -309,13 +319,19 @@ class QueryDocumentDataset_noNeg(data.Dataset):
         else:
             logging.info("Generating instances with signature {}".format(signature))
             labels = []
-
+            doc_ids=[]
             examples = []
+            queries = []
+            self.data.to_csv("~/dev_df.csv", index=False)
             for idx, row in enumerate(tqdm(self.data.iterrows(), total=len(self.data))):
                 query = row[1][0]
-                relevant_documents = row[1][1][0]
-                examples.append((query, relevant_documents))
-                labels+=[int(row[1][2][0])]
+                for i in range(len (row[1][1])):
+                    relevant_documents = row[1][1][i]
+                    examples.append((query, relevant_documents))
+                    labels+=[int(row[1][2][i])]
+                    doc_ids.append(int(row[1][3][i]))
+                    queries.append(query)
+
 
 
             logging.info("Encoding examples using tokenizer.batch_encode_plus().")
@@ -334,10 +350,13 @@ class QueryDocumentDataset_noNeg(data.Dataset):
             self.instances = []
             for i in range(len(examples)):
                 inputs = {k: batch_encoding[k][i] for k in batch_encoding}
+                inputs['target_doc_id']= doc_ids[i]
+                inputs['query']= queries[i]
                 if self.task_type == "generation":
                     targets = {k: target_encodings[k][i] for k in target_encodings}
                     inputs = {**inputs, **targets}
                 if self.task_type == "classification":
+
                     feature = InputFeatures(**inputs, label=labels[i])
                 else:
                     feature = inputs
@@ -360,3 +379,37 @@ class QueryDocumentDataset_noNeg(data.Dataset):
 
     def __getitem__(self, index):
         return self.instances[index]
+
+
+
+class InputFeatures(object):
+    """
+    A single set of features of data.
+
+    Args:
+        input_ids: Indices of input sequence tokens in the vocabulary.
+        attention_mask: Mask to avoid performing attention on padding token indices.
+            Mask values selected in ``[0, 1]``:
+            Usually  ``1`` for tokens that are NOT MASKED, ``0`` for MASKED (padded) tokens.
+        token_type_ids: Segment token indices to indicate first and second portions of the inputs.
+        label: Label corresponding to the input
+    """
+
+    def __init__(self, input_ids, attention_mask=None,target_doc_id=None, token_type_ids=None, label=None):
+        self.input_ids = input_ids
+        self.attention_mask = attention_mask
+        self.token_type_ids = token_type_ids
+        self.label = label
+        self.target_doc_id = target_doc_id
+
+    def __repr__(self):
+        return str(self.to_json_string())
+
+    def to_dict(self):
+        """Serializes this instance to a Python dictionary."""
+        output = copy.deepcopy(self.__dict__)
+        return output
+
+    def to_json_string(self):
+        """Serializes this instance to a JSON string."""
+        return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"

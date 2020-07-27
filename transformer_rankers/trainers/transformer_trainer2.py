@@ -2,7 +2,8 @@ from IPython import embed
 from tqdm import tqdm
 from transformer_rankers.eval import results_analyses_tools
 from transformer_rankers.utils import utils
-
+from transformer_rankers.trainers.losses.main import get_loss
+import transformer_rankers.trainers.losses.config.config_CARS196 as cfg
 import logging
 import torch
 import torch.nn as nn
@@ -63,6 +64,9 @@ class TransformerTrainer():
         self.optimizer = optim.Adam(self.model.parameters(),
                                     lr=self.lr)
         self.max_grad_norm = max_grad_norm
+        self.metric_loss = get_loss(n_input=cfg.N, k=cfg.K, tau=cfg.TAU, n_pos=cfg.POS_SAMPLE_NUM, margin=cfg.MARGIN,
+                               input_dim=cfg.EMBEDDING_WIDTH, output_dim=cfg.TRAIN_CLASS, batch_size=cfg.BATCH_SIZE,
+                               method=cfg.METHOD).cuda()
 
     def fit(self):
         """
@@ -78,9 +82,8 @@ class TransformerTrainer():
                 for k, v in inputs.items():
                     inputs[k] = v.to(self.device)                
 
-                # outputs = self.model(**inputs)
-                outputs = self.model(attention_mask=inputs['attention_mask'],input_ids=inputs['input_ids'],token_type_ids=inputs['token_type_ids'],labels=inputs['labels'])
-                loss = outputs[0] 
+                outputs = self.model(**inputs)
+                loss_metric,err_pos,sparsity=self.metric_loss(outputs,real_y.cuda())
 
                 if self.num_gpu > 1:
                     loss = loss.mean() 
@@ -118,27 +121,21 @@ class TransformerTrainer():
         self.model.eval()
         all_logits = []
         all_labels = []
-        all_ids = []
-        all_queries = []
         for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
                 batch[k] = v.to(self.device)
 
             with torch.no_grad():
                 if self.task_type == "classification":
-                    outputs = self.model(attention_mask=batch['attention_mask'], input_ids=batch['input_ids'],
-                                         token_type_ids=batch['token_type_ids'], labels=batch['labels'])
+                    outputs = self.model(**batch)
                     _, logits = outputs[:2]
                     all_labels+=batch["labels"].tolist()
                     all_logits+=logits[:, 1].tolist()
-                    all_ids+=batch["target_doc_id"].tolist()
-                    all_queries+=batch['query'].tolist()
-
-
+                    import pdb
+                    pdb.set_trace()
 
                 elif self.task_type == "generation":
-                    outputs = self.model(attention_mask=batch['attention_mask'], input_ids=batch['input_ids'],
-                                         token_type_ids=batch['token_type_ids'], labels=batch['labels'])
+                    outputs = self.model(**batch)                    
                     _, token_logits = outputs[:2]
                     relevant_token_id = self.tokenizer.encode("relevant")[0]
                     not_relevant_token_id = self.tokenizer.encode("not_relevant")[0]
@@ -157,7 +154,7 @@ class TransformerTrainer():
         #accumulates per query
         all_labels = utils.acumulate_list_multiple_relevant(all_labels)
         all_logits = utils.acumulate_l1_by_l2(all_logits, all_labels)
-        return all_logits, all_labels,all_ids,all_queries
+        return all_logits, all_labels
 
     def predict_with_uncertainty(self, loader, foward_passes):
         """

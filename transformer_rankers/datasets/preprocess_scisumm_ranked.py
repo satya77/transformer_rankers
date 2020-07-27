@@ -11,8 +11,10 @@ def transform_to_dfs(path):
         
     Returns: (train, valid, test) pandas DataFrames
     """
-    train_df_all = pd.read_csv(path , sep="\t")
-    train_df_all.columns=['query','passage','label']
+    np.random.seed(42)
+
+    train_df_all = pd.read_csv(path , sep="\t", header=None)
+    train_df_all.columns=['query','passage','label','id']
 
     msk = np.random.rand(len(train_df_all['query'].unique())) < 0.85
 
