@@ -83,12 +83,13 @@ class TransformerTrainer():
                     inputs[k] = v.to(self.device)                
 
                 outputs = self.model(**inputs)
-                loss_metric,err_pos,sparsity=self.metric_loss(outputs,real_y.cuda())
+                last_hidden_states = outputs[0]
+                loss_metric,err_pos,sparsity = self.metric_loss(last_hidden_states,inputs['labels'])
 
                 if self.num_gpu > 1:
-                    loss = loss.mean() 
+                    loss_metric = loss_metric.mean()
 
-                loss.backward()
+                loss_metric.backward()
 
                 nn.utils.clip_grad_norm_(self.model.parameters(),
                                          self.max_grad_norm)
@@ -126,27 +127,12 @@ class TransformerTrainer():
                 batch[k] = v.to(self.device)
 
             with torch.no_grad():
-                if self.task_type == "classification":
-                    outputs = self.model(**batch)
-                    _, logits = outputs[:2]
-                    all_labels+=batch["labels"].tolist()
-                    all_logits+=logits[:, 1].tolist()
-                    import pdb
-                    pdb.set_trace()
-
-                elif self.task_type == "generation":
-                    outputs = self.model(**batch)                    
-                    _, token_logits = outputs[:2]
-                    relevant_token_id = self.tokenizer.encode("relevant")[0]
-                    not_relevant_token_id = self.tokenizer.encode("not_relevant")[0]
-
-                    pred_relevant = token_logits[0:, 0 , relevant_token_id]
-                    pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
-                    pred = pred_relevant-pred_not_relevant                    
-
-                    all_logits+=pred.tolist()
-                    all_labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
-
+                outputs = self.model(**batch)
+                _, logits = outputs[:2]
+                all_labels+=batch["labels"].tolist()
+                all_logits+=logits[:, 1].tolist()
+                import pdb
+                pdb.set_trace()
 
             if self.num_validation_instances!=-1 and idx > self.num_validation_instances:
                 break
@@ -196,25 +182,13 @@ class TransformerTrainer():
                 batch[k] = v.to(self.device)
 
             with torch.no_grad():
-                if self.task_type == "classification":                    
-                    labels+= batch["labels"].tolist()
-                    fwrd_predictions = []
-                    for i, f_pass in enumerate(range(foward_passes)):
-                        outputs = self.model(**batch)
-                        _, batch_logits = outputs[:2]
-                        fwrd_predictions.append(batch_logits[:, 1].tolist())
-                        foward_passes_logits[i]+=batch_logits[:, 1].tolist()
-                elif self.task_type == "generation":
-                    labels+=[1 if (l[0] == relevant_token_id) else 0 for l in batch["lm_labels"]]
-                    fwrd_predictions = []
-                    for i, f_pass in enumerate(range(foward_passes)):
-                        outputs = self.model(**batch)
-                        _, token_logits = outputs[:2]
-                        pred_relevant = token_logits[0:, 0 , relevant_token_id]
-                        pred_not_relevant = token_logits[0:, 0 , not_relevant_token_id]
-                        pred = pred_relevant-pred_not_relevant
-                        fwrd_predictions.append(pred.tolist())
-                        foward_passes_logits[i]+=pred.tolist()
+                labels+= batch["labels"].tolist()
+                fwrd_predictions = []
+                for i, f_pass in enumerate(range(foward_passes)):
+                    outputs = self.model(**batch)
+                    _, batch_logits = outputs[:2]
+                    fwrd_predictions.append(batch_logits[:, 1].tolist())
+                    foward_passes_logits[i]+=batch_logits[:, 1].tolist()
 
                 logits+= np.array(fwrd_predictions).mean(axis=0).tolist()
                 uncertainties += np.array(fwrd_predictions).var(axis=0).tolist()

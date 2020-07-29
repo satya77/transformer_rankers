@@ -3,7 +3,8 @@ from typing import Dict, List, Optional
 
 from transformers import DataCollator
 # from transformers.data.processors.utils import InputFeatures
-from transformers.data.data_collator import DefaultDataCollator
+# from transformers.data.data_collator import DefaultDataCollator
+from typing import Any, Dict, List, NewType, Tuple, Union
 
 from IPython import embed
 from tqdm import tqdm
@@ -31,13 +32,66 @@ class T2TDataCollator(DataCollator):
         lm_labels[lm_labels[:, :] == 0] = -100
         attention_mask = torch.stack([torch.tensor(example['attention_mask'], dtype=torch.long) for example in batch])
         decoder_attention_mask = torch.stack([torch.tensor(example['target_attention_mask'], dtype=torch.long) for example in batch])
-
+        target_doc_ids = torch.stack([torch.tensor(example['target_doc_id'], dtype=torch.long) for example in batch])
+        query = [example['query'] for example in batch]
         return {
             'input_ids': input_ids, 
             'attention_mask': attention_mask,
             'lm_labels': lm_labels, 
-            'decoder_attention_mask': decoder_attention_mask
+            'decoder_attention_mask': decoder_attention_mask,
+            'target_doc_id' : target_doc_ids,
+            'query':query
         }
+InputDataClass = NewType("InputDataClass", Any)
+
+class DefaultDataCollator(DataCollator):
+    """
+    Very simple data collator that:
+    - simply collates batches of dict-like objects
+    - Performs special handling for potential keys named:
+        - `label`: handles a single value (int or float) per object
+        - `label_ids`: handles a list of values per object
+    - does not do any additional preprocessing
+    i.e., Property names of the input object will be used as corresponding inputs to the model.
+    See glue and ner for example of how it's useful.
+    """
+
+    def collate_batch(self,features: List[InputDataClass]) -> Dict[str, torch.Tensor]:
+        # In this method we'll make the assumption that all `features` in the batch
+        # have the same attributes.
+        # So we will look at the first element as a proxy for what attributes exist
+        # on the whole batch.
+        first = features[0]
+
+
+
+        # Special handling for labels.
+        # Ensure that tensor is created with the correct type
+        # (it should be automatically the case, but let's make sure of it.)
+        if hasattr(first, "label") and first.label is not None:
+            if type(first.label) is int:
+                labels = torch.tensor([f.label for f in features], dtype=torch.long)
+            else:
+                labels = torch.tensor([f.label for f in features],  dtype=torch.float)
+            batch = {"labels": labels}
+        elif hasattr(first, "label_ids") and first.label_ids is not None:
+            if type(first.label_ids[0]) is int:
+                labels = torch.tensor([f.label_ids for f in features],  dtype=torch.long)
+            else:
+                labels = torch.tensor([f.label_ids for f in features], dtype=torch.float)
+            batch = {"labels": labels}
+        else:
+            batch = {}
+
+        # Handling of all other possible attributes.
+        # Again, we will use the first element to figure out which key/values are not None for this model.
+        for k, v in vars(first).items():
+            if k not in ("label", "label_ids") and v is not None:
+                if isinstance(v, str):
+                    batch[k] = [getattr(f, k) for f in features]
+                else:
+                    batch[k] = torch.tensor([getattr(f, k) for f in features],dtype=torch.long)
+        return batch
 
 class AbstractDataloader(metaclass=ABCMeta):
     """
@@ -143,7 +197,7 @@ class QueryDocumentDataLoader(AbstractDataloader):
 
     def _get_test_loader(self, with_ranked_list):
         if with_ranked_list:
-            dataset = QueryDocumentDataset_noNeg(self.val_df, self.tokenizer, 'test',
+            dataset = QueryDocumentDataset_noNeg(self.test_df, self.tokenizer, 'test',
                                             self.task_type,
                                             self.max_seq_len, self.sample_data, self.cache_path)
         else:
@@ -290,14 +344,16 @@ class QueryDocumentDataset_noNeg(data.Dataset):
         query_col = self.data.columns[0]
         self.data = self.data.groupby(query_col).agg(list).reset_index()
 
-        print("before cleaning:{}".format(len(self.data )))
-        for index, row in self.data.iterrows():
-            if len(row['label']) != 10:
-                self.data.drop(index, inplace=True)
-            if row['label'] == [0]*10:
-                self.data.drop(index, inplace=True)
+        if self.data_partition!="test":
+            print("before cleaning:{}".format(len(self.data )))
+            for index, row in self.data.iterrows():
+                if len(row['label']) != 10:
+                    self.data.drop(index, inplace=True)
+                if row['label'] == [0]*10:
+                    self.data.drop(index, inplace=True)
 
-        print("after cleaning:{}".format(len(self.data )))
+            print("after cleaning:{}".format(len(self.data )))
+
 
     def _cache_instances(self):
         """
@@ -316,12 +372,15 @@ class QueryDocumentDataset_noNeg(data.Dataset):
             with open(path, 'rb') as f:
                 logging.info("Loading instances from {}".format(path))
                 self.instances = pickle.load(f)
+            with open(path+"_queries", 'rb') as f:
+                logging.info("Loading instances from {}".format(path))
+                self.queries = pickle.load(f)
         else:
             logging.info("Generating instances with signature {}".format(signature))
             labels = []
             doc_ids=[]
             examples = []
-            queries = []
+            self.queries = []
             self.data.to_csv("~/dev_df.csv", index=False)
             for idx, row in enumerate(tqdm(self.data.iterrows(), total=len(self.data))):
                 query = row[1][0]
@@ -330,7 +389,7 @@ class QueryDocumentDataset_noNeg(data.Dataset):
                     examples.append((query, relevant_documents))
                     labels+=[int(row[1][2][i])]
                     doc_ids.append(int(row[1][3][i]))
-                    queries.append(query)
+                    self.queries.append(query)
 
 
 
@@ -351,7 +410,8 @@ class QueryDocumentDataset_noNeg(data.Dataset):
             for i in range(len(examples)):
                 inputs = {k: batch_encoding[k][i] for k in batch_encoding}
                 inputs['target_doc_id']= doc_ids[i]
-                inputs['query']= queries[i]
+                inputs['query']= self.queries[i]
+
                 if self.task_type == "generation":
                     targets = {k: target_encodings[k][i] for k in target_encodings}
                     inputs = {**inputs, **targets}
@@ -371,6 +431,8 @@ class QueryDocumentDataset_noNeg(data.Dataset):
                     "Set {} Instance {} features \n\n{}\n".format(self.data_partition, idx, self.instances[idx]))
             with open(path, 'wb') as f:
                 pickle.dump(self.instances, f)
+            with open(path+"_queries", 'wb') as f:
+                pickle.dump(self.queries, f)
 
         logging.info("Total of {} instances were cached.".format(len(self.instances)))
 
@@ -379,6 +441,9 @@ class QueryDocumentDataset_noNeg(data.Dataset):
 
     def __getitem__(self, index):
         return self.instances[index]
+
+    def get_query(self,index):
+        return self.queries[index]
 
 
 
@@ -395,12 +460,13 @@ class InputFeatures(object):
         label: Label corresponding to the input
     """
 
-    def __init__(self, input_ids, attention_mask=None,target_doc_id=None, token_type_ids=None, label=None):
+    def __init__(self, input_ids, attention_mask=None,target_doc_id=None, token_type_ids=None, label=None,query=None):
         self.input_ids = input_ids
         self.attention_mask = attention_mask
         self.token_type_ids = token_type_ids
         self.label = label
         self.target_doc_id = target_doc_id
+        self.query = query
 
     def __repr__(self):
         return str(self.to_json_string())

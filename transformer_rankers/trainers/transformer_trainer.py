@@ -72,11 +72,11 @@ class TransformerTrainer():
         logging.info("Validating every {} epoch.".format(self.validate_epochs))        
         val_ndcg=0
         for epoch in range(self.num_epochs):
-            for inputs in tqdm(self.train_loader, desc="Epoch {}".format(epoch), total=len(self.train_loader)):
+            for i,inputs in tqdm(enumerate(self.train_loader), desc="Epoch {}".format(epoch), total=len(self.train_loader)):
                 self.model.train()
-
                 for k, v in inputs.items():
-                    inputs[k] = v.to(self.device)                
+                    if k != 'query':
+                        inputs[k] = v.to(self.device)
 
                 # outputs = self.model(**inputs)
                 outputs = self.model(attention_mask=inputs['attention_mask'],input_ids=inputs['input_ids'],token_type_ids=inputs['token_type_ids'],labels=inputs['labels'])
@@ -93,7 +93,7 @@ class TransformerTrainer():
                 self.optimizer.zero_grad()
 
             if self.validate_epochs > 0 and epoch % self.validate_epochs == 0:
-                logits, labels = self.predict(loader = self.val_loader)
+                logits, labels, all_ids,all_queries,all_logits_without_acc = self.predict(loader = self.val_loader)
                 res = results_analyses_tools.evaluate_and_aggregate(logits, labels, ['ndcg_cut_10'])
                 val_ndcg = res['ndcg_cut_10']
                 if val_ndcg>self.best_ndcg:
@@ -122,8 +122,8 @@ class TransformerTrainer():
         all_queries = []
         for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
-                batch[k] = v.to(self.device)
-
+                if k!='query':
+                    batch[k] = v.to(self.device)
             with torch.no_grad():
                 if self.task_type == "classification":
                     outputs = self.model(attention_mask=batch['attention_mask'], input_ids=batch['input_ids'],
@@ -132,7 +132,7 @@ class TransformerTrainer():
                     all_labels+=batch["labels"].tolist()
                     all_logits+=logits[:, 1].tolist()
                     all_ids+=batch["target_doc_id"].tolist()
-                    all_queries+=batch['query'].tolist()
+                    all_queries+=batch["query"]
 
 
 
@@ -156,8 +156,9 @@ class TransformerTrainer():
 
         #accumulates per query
         all_labels = utils.acumulate_list_multiple_relevant(all_labels)
+        all_logits_without_acc=all_logits.copy()
         all_logits = utils.acumulate_l1_by_l2(all_logits, all_labels)
-        return all_logits, all_labels,all_ids,all_queries
+        return all_logits, all_labels ,all_ids ,all_queries , all_logits_without_acc
 
     def predict_with_uncertainty(self, loader, foward_passes):
         """
@@ -242,6 +243,16 @@ class TransformerTrainer():
         """        
         self.num_validation_instances = -1 # no sample on test.
         return self.predict(self.test_loader)
+
+    def validate(self):
+        """
+        Uses trained model to make predictions on the test loader.
+
+        Returns:
+            A tuple of (logits, labels)
+        """
+        self.num_validation_instances = -1 # no sample on test.
+        return self.predict(self.val_loader)
     
     def test_with_dropout(self, foward_passes):
         """

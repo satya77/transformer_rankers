@@ -1,5 +1,5 @@
 from transformer_rankers.trainers import transformer_trainer
-from transformer_rankers.datasets import dataset, preprocess_crr, preprocess_sqr, preprocess_scisumm
+from transformer_rankers.datasets import dataset, preprocess_crr, preprocess_sqr, preprocess_scisumm,preprocess_scisumm_ranked
 from transformer_rankers.negative_samplers import negative_sampling
 from transformer_rankers.eval import results_analyses_tools
 
@@ -7,7 +7,7 @@ from transformers import BertTokenizer, BertForSequenceClassification
 from sacred.observers import FileStorageObserver
 from sacred import Experiment
 from IPython import embed
-
+import numpy as np
 import torch
 import pandas as pd
 import argparse
@@ -46,12 +46,18 @@ def run_experiment(args):
         if args.sample_data == -1: args.sample_data = None
         train = pd.read_csv(args.data_folder + args.task + "/train.tsv", sep="\t", nrows=args.sample_data)
         valid = pd.read_csv(args.data_folder + args.task + "/valid.tsv", sep="\t", nrows=args.sample_data)
-        valid = pd.read_csv("~/data/Training-Set-2019/Task1/satya_.tsv", sep="\t", nrows=args.sample_data)
     elif args.task == "scisumm":
         train, valid = preprocess_scisumm.transform_to_dfs("../data/Training-Set-2019/Task1/From-Training-Set-2018/")
+    elif args.task == "scisumm_ranked":
+            train, valid, test = preprocess_scisumm_ranked.transform_to_dfs(
+                args.path_to_ranked_file,args.path_to_ranked_test)
+
+
 
     # Choose the negative candidate sampler
     document_col = train.columns[1]
+    ns_train=None
+    ns_val=None
     if args.train_negative_sampler == 'random':
         ns_train = negative_sampling.RandomNegativeSampler(list(train[document_col].values), args.num_ns_train)
     elif args.train_negative_sampler == 'bm25':
@@ -62,7 +68,6 @@ def run_experiment(args):
         ns_train = negative_sampling.SentenceBERTNegativeSampler(list(train[document_col].values), args.num_ns_train,
                                                                  args.data_folder + "/" + args.task + "/train_sentenceBERTembeds",
                                                                  args.sample_data, args.bert_sentence_model)
-
     if args.test_negative_sampler == 'random':
         ns_val = negative_sampling.RandomNegativeSampler(
             list(valid[document_col].values) + list(train[document_col].values), args.num_ns_eval)
@@ -78,13 +83,16 @@ def run_experiment(args):
             args.bert_sentence_model)
 
     # Create the loaders for the datasets, with the respective negative samplers
-    dataloader = dataset.QueryDocumentDataLoader(train, valid, valid,
+    dataloader = dataset.QueryDocumentDataLoader(train, valid, test,
                                                  tokenizer, ns_train, ns_val,
                                                  'classification', args.train_batch_size,
                                                  args.val_batch_size, args.max_seq_len,
-                                                 args.sample_data, args.data_folder + args.task)
-
-    train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
+                                                 args.sample_data, args.data_folder +   "/" +args.task)
+    if args.task == "scisumm_ranked":
+        with_ranked_list=True
+    else:
+        with_ranked_list= False
+    train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders(with_ranked_list)
 
     # Instantiate transformer model to be used
     model = BertForSequenceClassification.from_pretrained(args.transformer_model)
@@ -96,6 +104,7 @@ def run_experiment(args):
                                                      args.validate_every_epochs, args.num_validation_instances,
                                                      args.num_epochs, args.lr, args.sacred_ex)
 
+
     # Train
     model_name = model.__class__.__name__
     logging.info("Fitting {} for {}{}".format(model_name, args.data_folder, args.task))
@@ -103,11 +112,27 @@ def run_experiment(args):
 
     # Predict for test
     logging.info("Predicting")
-    preds, labels = trainer.test()
+    preds, labels, doc_ids, all_queries, preds_without_acc = trainer.validate()
     res = results_analyses_tools.evaluate_and_aggregate(preds, labels, ['R_10@1',
                                                                         'R_10@2',
                                                                         'R_10@5',
-                                                                        'R_2@1'])
+                                                                        'R_2@1',
+                                                                        'accuracy_0.3',
+                                                                        'accuracy_0.3_upto_1',
+                                                                        'precision_0.3',
+                                                                        'recall_0.3',
+                                                                        'f_score_0.3',
+                                                                        'accuracy_0.4',
+                                                                        'accuracy_0.4_upto_1',
+                                                                        'precision_0.4',
+                                                                        'recall_0.4',
+                                                                        'f_score_0.4',
+                                                                        'accuracy_0.5',
+                                                                        'accuracy_0.5_upto_1',
+                                                                        'precision_0.5',
+                                                                        'recall_0.5',
+                                                                        'f_score_0.5'
+                                                                        ])
     for metric, v in res.items():
         logging.info("Test {} : {:4f}".format(metric, v))
 
@@ -118,6 +143,31 @@ def run_experiment(args):
 
     labels_df = pd.DataFrame(labels, columns=["label_" + str(i) for i in range(max_preds_column)])
     labels_df.to_csv(args.output_dir + "/" + args.run_id + "/labels.csv", index=False)
+
+    # predict on the test set
+    preds, labels, doc_ids, all_queries, preds_without_acc = trainer.test()
+
+    new_preds=list((np.array(preds_without_acc)> 0.3).astype(int))
+    d = {'query': all_queries, 'doc_id': doc_ids,'label': new_preds, 'similiarity':preds_without_acc}
+
+    df_doc_ids = pd.DataFrame(d)
+    df_doc_ids_ones = df_doc_ids[df_doc_ids['label']==1]
+    df_doc_ids_ones = df_doc_ids_ones.groupby('query').agg(list).reset_index()
+    df_doc_ids_non_ones = df_doc_ids.groupby('query').agg(list).reset_index()
+    new_df=[]
+    for i,row in df_doc_ids_non_ones.iterrows():
+        if all([v == 0 for v in row['label']]):
+            highest_value=[x for _, x in sorted(zip(row['similiarity'], row['doc_id']), key=lambda pair: pair[0])]
+            highest_value_sim=[x for x in sorted(row['similiarity'])]
+
+            row['label'] = [1]
+            row[ 'doc_id'] = highest_value[0]
+            row[ 'similiarity'] = highest_value_sim[0]
+
+            new_df.append(row)
+
+    result = pd.concat([df_doc_ids_ones,pd.DataFrame(new_df)])
+    result.to_csv(args.output_dir + "/" + args.run_id + "/doc_ids.csv", index=False, sep='\t')
 
     # Saving model to a file
     if args.save_model:
@@ -202,6 +252,14 @@ def main():
                         help="Maximum sequence length for the inputs.")
     parser.add_argument("--lr", default=5e-6, type=float, required=False,
                         help="Learning rate.")
+
+    parser.add_argument("--threshold", default=0.3, type=float, required=False,
+                        help="threshold for the number of relevant results.")
+
+    parser.add_argument("--path_to_ranked_file", default=None, type=str, required=False,
+                        help="if there is a ranked file this will be the path to it. ")
+    parser.add_argument("--path_to_ranked_test", default=None, type=str, required=False,
+                        help="if there is a ranked test file this will be the path to it. ")
 
     # Uncertainty estimation hyperparameters
     parser.add_argument("--predict_with_uncertainty_estimation", default=False, action="store_true", required=False,

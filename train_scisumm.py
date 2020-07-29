@@ -33,7 +33,7 @@ tokenizer.add_special_tokens(special_tokens_dict)
 dataloader = dataset.QueryDocumentDataLoader(train_df=train, val_df=valid, test_df=valid,
                                 tokenizer=tokenizer, negative_sampler_train=ns_train,
                                 negative_sampler_val=ns_val, task_type='classification',
-                                train_batch_size=32, val_batch_size=32, max_seq_len=512,
+                                train_batch_size=24, val_batch_size=24, max_seq_len=512,
                                 sample_data=-1, cache_path="../data")
 logging.info("Initlizing the DataLoader")
 train_loader, val_loader, test_loader = dataloader.get_pytorch_dataloaders()
@@ -51,14 +51,15 @@ trainer = transformer_trainer.TransformerTrainer(model=model,train_loader=train_
                                 num_epochs=1, lr=0.0005, sacred_ex=None)
 
 #Train the model
-logging.info("Fitting BERT-ranker for TERC")
+logging.info("Fitting BERT-ranker for SciSumm")
 trainer.fit()
 
 #Predict for test (in our example the validation set)
 logging.info("Predicting")
 preds, labels = trainer.test()
 res = results_analyses_tools.\
-    evaluate_and_aggregate(preds, labels, ['ndcg_cut_10'])
+    evaluate_and_aggregate(preds, labels, ['R_10@1','R_10@2', 'R_10@5',
+'R_2@1'])
 
 for metric, v in res.items():
     logging.info("Test {} : {:4f}".format(metric, v))
