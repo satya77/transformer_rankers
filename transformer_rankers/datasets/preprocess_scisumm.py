@@ -1,6 +1,4 @@
-from IPython import embed
-from tqdm import tqdm
-from os import walk,listdir
+from os import listdir
 from os.path import join
 from transformer_rankers.datasets.scicummGen import Paper,Annotation
 
@@ -13,17 +11,9 @@ import numpy as np
 
 def transform_to_dfs(path):
     """
-    Transforms TREC 2020 Passage Ranking files (https://microsoft.github.io/TREC-2020-Deep-Learning/)
-    to train, valid and test dfs containing only positive query-passage combinations.
-
-    Args:
-        path: str with the path for the TREC folder containing: 
-            - collection.tar.gz (uncompressed: collection.tsv)
-            - queries.tar.gz (uncompressed: queries.train.tsv, queries.dev.tsv)
-            - qrels.dev.tsv
-            - qrels.train.tsv
+    Transforms the scisumm dataset to pandas datafram and do random development split
         
-    Returns: (train, valid, test) pandas DataFrames
+    Returns: (train, valid) pandas DataFrames
     """
     train=[]
     for directory in listdir(path):

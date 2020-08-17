@@ -50,7 +50,7 @@ def run_experiment(args):
         train, valid = preprocess_scisumm.transform_to_dfs("../data/Training-Set-2019/Task1/From-Training-Set-2018/")
     elif args.task == "scisumm_ranked":
             train, valid, test = preprocess_scisumm_ranked.transform_to_dfs(
-                args.path_to_ranked_file,args.path_to_ranked_test)
+                args.path_to_ranked_file,args.path_to_ranked_test,args.path_to_ranked_dev)
 
 
 
@@ -144,6 +144,28 @@ def run_experiment(args):
     labels_df = pd.DataFrame(labels, columns=["label_" + str(i) for i in range(max_preds_column)])
     labels_df.to_csv(args.output_dir + "/" + args.run_id + "/labels.csv", index=False)
 
+    new_preds = list((np.array(preds_without_acc) > 0.3).astype(int))
+    d = {'query': all_queries, 'doc_id': doc_ids, 'label': new_preds, 'similiarity': preds_without_acc}
+
+    df_doc_ids = pd.DataFrame(d)
+    df_doc_ids_ones = df_doc_ids[df_doc_ids['label'] == 1]
+    df_doc_ids_ones = df_doc_ids_ones.groupby('query').agg(list).reset_index()
+    df_doc_ids_non_ones = df_doc_ids.groupby('query').agg(list).reset_index()
+    new_df = []
+    for i, row in df_doc_ids_non_ones.iterrows():
+        if all([v == 0 for v in row['label']]):
+            highest_value = [x for _, x in sorted(zip(row['similiarity'], row['doc_id']), key=lambda pair: pair[0])]
+            highest_value_sim = [x for x in sorted(row['similiarity'])]
+
+            row['label'] = [1]
+            row['doc_id'] = [highest_value[0]]
+            row['similiarity'] = [highest_value_sim[0]]
+
+            new_df.append(row)
+
+    result = pd.concat([df_doc_ids_ones, pd.DataFrame(new_df)])
+    result.to_csv(args.output_dir + "/" + args.run_id + "/doc_ids_dev.csv", index=False, sep='\t')
+
     # predict on the test set
     preds, labels, doc_ids, all_queries, preds_without_acc = trainer.test()
 
@@ -161,13 +183,13 @@ def run_experiment(args):
             highest_value_sim=[x for x in sorted(row['similiarity'])]
 
             row['label'] = [1]
-            row[ 'doc_id'] = highest_value[0]
-            row[ 'similiarity'] = highest_value_sim[0]
+            row[ 'doc_id'] = [highest_value[0]]
+            row[ 'similiarity'] = [highest_value_sim[0]]
 
             new_df.append(row)
 
     result = pd.concat([df_doc_ids_ones,pd.DataFrame(new_df)])
-    result.to_csv(args.output_dir + "/" + args.run_id + "/doc_ids.csv", index=False, sep='\t')
+    result.to_csv(args.output_dir + "/" + args.run_id + "/doc_ids_test.csv", index=False, sep='\t')
 
     # Saving model to a file
     if args.save_model:
@@ -260,7 +282,8 @@ def main():
                         help="if there is a ranked file this will be the path to it. ")
     parser.add_argument("--path_to_ranked_test", default=None, type=str, required=False,
                         help="if there is a ranked test file this will be the path to it. ")
-
+    parser.add_argument("--path_to_ranked_dev", default=None, type=str, required=False,
+                        help="if there is a ranked dev file this will be the path to it. ")
     # Uncertainty estimation hyperparameters
     parser.add_argument("--predict_with_uncertainty_estimation", default=False, action="store_true", required=False,
                         help="Whether to use dropout at test time to get relevance (mean) and uncertainties (variance).")

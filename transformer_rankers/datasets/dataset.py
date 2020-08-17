@@ -344,7 +344,7 @@ class QueryDocumentDataset_noNeg(data.Dataset):
         query_col = self.data.columns[0]
         self.data = self.data.groupby(query_col).agg(list).reset_index()
 
-        if self.data_partition!="test":
+        if self.data_partition=="train":
             print("before cleaning:{}".format(len(self.data )))
             for index, row in self.data.iterrows():
                 if len(row['label']) != 10:

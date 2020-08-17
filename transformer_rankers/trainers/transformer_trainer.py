@@ -120,6 +120,7 @@ class TransformerTrainer():
         all_labels = []
         all_ids = []
         all_queries = []
+        softmax = nn.Sigmoid()
         for idx, batch in tqdm(enumerate(loader), total=len(loader)):
             for k, v in batch.items():
                 if k!='query':
@@ -128,9 +129,10 @@ class TransformerTrainer():
                 if self.task_type == "classification":
                     outputs = self.model(attention_mask=batch['attention_mask'], input_ids=batch['input_ids'],
                                          token_type_ids=batch['token_type_ids'], labels=batch['labels'])
+
                     _, logits = outputs[:2]
                     all_labels+=batch["labels"].tolist()
-                    all_logits+=logits[:, 1].tolist()
+                    all_logits+=softmax(logits[:, 1]).tolist()
                     all_ids+=batch["target_doc_id"].tolist()
                     all_queries+=batch["query"]
 
